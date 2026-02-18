@@ -1,0 +1,24 @@
+# AWS Region Configuration
+aws_region = "us-east-2"
+
+# EKS Cluster Configuration
+cluster_version = "1.29"
+
+# Cluster Endpoint Access
+cluster_endpoint_public_access  = true
+cluster_endpoint_private_access = true
+
+# CloudWatch Logs Retention
+cluster_log_retention_days = 7
+
+# INSTRUCTIONS:
+# 1. Copy this file to terraform.tfvars
+# 2. Customize the values as needed
+# 3. DO NOT commit terraform.tfvars to version control (it's in .gitignore)
+
+# Example usage:
+# cp terraform.tfvars.example terraform.tfvars
+# vim terraform.tfvars
+# terraform init
+# terraform plan
+# terraform apply

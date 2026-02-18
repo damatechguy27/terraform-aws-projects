@@ -1,0 +1,101 @@
+# ==============================================================================
+# Simple EKS Terraform Configuration Example
+# ==============================================================================
+#
+# INSTRUCTIONS:
+# 1. Copy this file: cp terraform.tfvars.example terraform.tfvars
+# 2. Edit terraform.tfvars with your desired values
+# 3. DO NOT commit terraform.tfvars to version control (add to .gitignore)
+#
+# ==============================================================================
+
+# ==============================================================================
+# Project Configuration
+# ==============================================================================
+
+project_name = "simple-eks"
+environment  = "dev"
+cost_center  = "engineering"
+
+# ==============================================================================
+# AWS Configuration
+# ==============================================================================
+
+aws_region = "us-east-2"
+
+# ==============================================================================
+# EKS Cluster Configuration
+# ==============================================================================
+
+cluster_version = "1.29"
+
+# Endpoint access configuration
+# Production: Set endpoint_public_access = false and use VPN/bastion
+cluster_endpoint_public_access  = true
+cluster_endpoint_private_access = true
+
+# Control plane logging
+# Logs sent to CloudWatch - be mindful of costs in production
+enabled_cluster_log_types = ["api", "audit", "authenticator"]
+
+# Log retention (days): 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653
+# Shorter retention = lower CloudWatch costs
+cluster_log_retention_days = 7
+
+# ==============================================================================
+# Node Group Configuration
+# ==============================================================================
+
+# Instance types - use multiple types for better availability with Spot
+# Common options: t3.small, t3.medium, t3.large, t3a.medium, t3a.large
+node_instance_types = ["t3.medium"]
+
+# Node group sizing
+node_desired_size = 2  # Number of nodes to start with
+node_min_size     = 2  # Minimum for HA (at least 2 for multi-AZ)
+node_max_size     = 4  # Maximum for auto-scaling
+
+# Node disk size (GiB)
+node_disk_size = 20
+
+# Capacity type: ON_DEMAND or SPOT
+# SPOT can save ~70% but nodes can be interrupted
+# Production workloads: Use ON_DEMAND or mix of both
+node_capacity_type = "ON_DEMAND"
+
+# ==============================================================================
+# Ingress Controller Configuration
+# ==============================================================================
+
+# AWS Load Balancer Controller version
+# Check latest: https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases
+ingress_controller_version = "1.7.1"
+
+# Number of controller replicas (minimum 2 for HA in production)
+ingress_replica_count = 2
+
+# ==============================================================================
+# COST OPTIMIZATION TIPS
+# ==============================================================================
+#
+# For Development/Testing:
+# - Use node_capacity_type = "SPOT" to save ~70% on compute
+# - Reduce node_desired_size = 1 and node_min_size = 1
+# - Use smaller instances: node_instance_types = ["t3.small"]
+# - Reduce cluster_log_retention_days = 1
+# - Scale to zero during off-hours (manual or automated)
+#
+# For Production:
+# - Use Savings Plans or Reserved Instances for predictable workloads
+# - Keep node_min_size = 2 for HA across multiple AZs
+# - Enable Cluster Autoscaler or Karpenter for right-sizing
+# - Use larger retention for compliance: cluster_log_retention_days = 90
+# - Consider Fargate for bursty workloads
+#
+# Estimated Monthly Costs (us-east-2, ON_DEMAND):
+# - EKS control plane: $73
+# - 2x t3.medium nodes: ~$60
+# - Data transfer & misc: ~$20
+# Total: ~$150-200/month
+#
+# ==============================================================================

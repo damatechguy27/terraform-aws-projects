@@ -1,0 +1,23 @@
+# Backend Configuration Template
+# Copy this to your environment directory and customize
+
+terraform {
+  backend "s3" {
+    bucket         = "PROJECT_NAME-terraform-state"
+    key            = "eks/BRANCH_NAME/ENVIRONMENT/terraform.tfstate"
+    region         = "AWS_REGION"
+    dynamodb_table = "PROJECT_NAME-terraform-locks"
+    encrypt        = true
+  }
+}
+
+# Example for tech-branch-est/dev:
+# terraform {
+#   backend "s3" {
+#     bucket         = "eks-platform-terraform-state"
+#     key            = "eks/tech-branch-est/dev/terraform.tfstate"
+#     region         = "us-east-2"
+#     dynamodb_table = "eks-platform-terraform-locks"
+#     encrypt        = true
+#   }
+# }

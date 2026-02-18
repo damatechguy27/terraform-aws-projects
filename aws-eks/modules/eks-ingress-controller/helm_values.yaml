@@ -1,0 +1,75 @@
+# AWS Load Balancer Controller Helm Values Template
+# This file serves as a reference for available configuration options
+# Actual values are configured in main.tf
+
+# Cluster and VPC configuration
+clusterName: "CLUSTER_NAME"
+vpcId: "VPC_ID"
+
+# Service account configuration (IRSA)
+serviceAccount:
+  create: true
+  name: "aws-load-balancer-controller"
+  annotations:
+    eks.amazonaws.com/role-arn: "IAM_ROLE_ARN"
+
+# Deployment configuration
+replicaCount: 2
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: "200m"
+    memory: "500Mi"
+  requests:
+    cpu: "100m"
+    memory: "200Mi"
+
+# Pod disruption budget for high availability
+podDisruptionBudget:
+  maxUnavailable: 1
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+
+# Controller features
+enableShield: false  # AWS Shield integration
+enableWaf: false     # AWS WAF v1 integration
+enableWafv2: false   # AWS WAFv2 integration
+
+# Logging configuration
+logLevel: "info"  # Options: debug, info, warn, error
+
+# Region configuration (null = auto-detect from node)
+region: null
+
+# Feature gates
+enableCertManager: false
+enableEndpointSlices: true
+
+# Node selector (optional - run on specific nodes)
+# nodeSelector:
+#   role: system
+
+# Tolerations (optional - tolerate taints)
+# tolerations:
+#   - key: "CriticalAddonsOnly"
+#     operator: "Exists"
+#     effect: "NoSchedule"
+
+# Affinity rules (optional - pod anti-affinity for HA)
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - aws-load-balancer-controller
+#           topologyKey: kubernetes.io/hostname
