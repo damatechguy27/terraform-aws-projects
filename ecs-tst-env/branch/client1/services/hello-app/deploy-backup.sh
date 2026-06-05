@@ -48,7 +48,7 @@ PLATFORM="${PLATFORM:-linux/amd64}"
 # ---------- 1. compute tag: <app>-<UTC date>-<random hex> ----------
 DATE_STAMP="$(date -u +%Y%m%d-%H%M%S)"
 RAND_HASH="$(openssl rand -hex 4)"
-IMAGE_TAG="${APP_NAME}-${DATE_STAMP}-${RAND_HASH}"
+IMAGE_TAG="${APP_NAME}-${RAND_HASH}-${DATE_STAMP}"
 IMAGE_URI="${ECR_REPO_URL}:${IMAGE_TAG}"
 
 # Progress goes to stderr so stdout stays parseable (jq-friendly).

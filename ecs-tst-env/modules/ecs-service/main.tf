@@ -14,15 +14,15 @@ resource "aws_security_group" "service" {
   })
 }
 
-resource "aws_vpc_security_group_ingress_rule" "from_cidrs" {
-  for_each = toset(var.ingress_cidrs)
+resource "aws_vpc_security_group_ingress_rule" "ingress" {
+  for_each = local.ingress_rules
 
   security_group_id = aws_security_group.service.id
-  cidr_ipv4         = each.value
-  from_port         = var.container_port
-  to_port           = var.container_port
-  ip_protocol       = "tcp"
-  description       = "Container port from ${each.value}"
+  cidr_ipv4         = each.value.cidr
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
+  ip_protocol       = each.value.protocol
+  description       = each.value.description
 }
 
 resource "aws_vpc_security_group_egress_rule" "all" {

@@ -1,10 +1,10 @@
 locals {
   # Project identification
-  client_name      = "client1"
-  project_name      = "infra"
-  project_name2      = "new-infra2"
-  environment       = "prd"
-  region            = "us-east-2"
+  client_name   = "client1"
+  project_name  = "infra"
+  project_name2 = "new-infra2"
+  environment   = "prd"
+  region        = "us-east-2"
 
   # Naming prefix for all resources
   naming_prefix = "${local.client_name}-${local.project_name}-${local.environment}"

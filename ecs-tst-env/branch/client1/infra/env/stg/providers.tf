@@ -6,7 +6,7 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-  
+
     tls = {
       source  = "hashicorp/tls"
       version = "~> 4.0"
@@ -16,7 +16,7 @@ terraform {
 
 # AWS Provider with default tags
 provider "aws" {
-  region  = local.region
+  region = local.region
   #profile = "default-est-2"
 
   default_tags {

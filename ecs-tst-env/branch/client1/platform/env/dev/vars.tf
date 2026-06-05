@@ -1,5 +1,3 @@
-variable "container_image_tag" {
-  description = "ECR image tag deployed on the api service. Set by services/deploy.sh on each release; bootstrap value lets the first apply succeed before any image has been pushed."
-  type        = string
-  default     = "bootstrap"
-}
+# Image tags are no longer passed in as a variable: each service auto-resolves the
+# latest image from the shared ECR repo by tag prefix (see data.external.latest_image
+# in data.tf and local.services in locals.tf).

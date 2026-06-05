@@ -70,7 +70,7 @@ variable "task_memory" {
 }
 
 variable "desired_count" {
-  description = "Number of tasks the service keeps running."
+  description = "Initial number of tasks the service runs. When autoscaling is enabled (min_count + max_count set), this is only the starting count — the service ignores later drift so the autoscaler owns it."
   type        = number
   default     = 2
 
@@ -80,10 +80,61 @@ variable "desired_count" {
   }
 }
 
-variable "ingress_cidrs" {
-  description = "CIDR blocks allowed to reach the container_port. Empty list = no ingress (e.g. when fronted by an ALB whose SG you add via additional_security_group_ids)."
-  type        = list(string)
-  default     = []
+variable "min_count" {
+  description = "Minimum task count for Application Auto Scaling. Set together with max_count to enable autoscaling; leave both null to disable."
+  type        = number
+  default     = null
+}
+
+variable "max_count" {
+  description = "Maximum task count for Application Auto Scaling. Set together with min_count to enable autoscaling; leave both null to disable."
+  type        = number
+  default     = null
+}
+
+variable "autoscaling_cpu_target" {
+  description = "Target average CPU utilization (%) for the target-tracking scaling policy. Only used when autoscaling is enabled."
+  type        = number
+  default     = 70
+
+  validation {
+    condition     = var.autoscaling_cpu_target > 0 && var.autoscaling_cpu_target <= 100
+    error_message = "autoscaling_cpu_target must be in (0, 100]."
+  }
+}
+
+variable "autoscaling_scale_out_cooldown" {
+  description = "Seconds to wait after a scale-out before another scale-out. Only used when autoscaling is enabled."
+  type        = number
+  default     = 60
+}
+
+variable "autoscaling_scale_in_cooldown" {
+  description = "Seconds to wait after a scale-in before another scale-in. Only used when autoscaling is enabled."
+  type        = number
+  default     = 300
+}
+
+variable "ingress_rules" {
+  description = "Ingress rules for the service security group. Each rule opens a port range to a CIDR. Empty list = no ingress (e.g. when fronted by an ALB whose SG you add via additional_security_group_ids)."
+  type = list(object({
+    cidr        = string
+    from_port   = number
+    to_port     = number
+    protocol    = optional(string, "tcp")
+    description = optional(string)
+  }))
+  default = []
+
+  validation {
+    condition     = alltrue([for r in var.ingress_rules : can(cidrhost(r.cidr, 0))])
+    error_message = "Each ingress rule cidr must be a valid IPv4 CIDR (e.g. 10.0.0.0/8 or 0.0.0.0/0)."
+  }
+
+  validation {
+    condition     = alltrue([for r in var.ingress_rules : r.from_port <= r.to_port])
+    error_message = "Each ingress rule must have from_port <= to_port."
+  }
 }
 
 variable "additional_security_group_ids" {

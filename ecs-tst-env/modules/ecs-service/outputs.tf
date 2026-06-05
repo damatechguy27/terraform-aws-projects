@@ -42,3 +42,13 @@ output "log_group_name" {
   description = "CloudWatch log group for the service."
   value       = aws_cloudwatch_log_group.this.name
 }
+
+output "autoscaling_enabled" {
+  description = "Whether Application Auto Scaling is configured for this service."
+  value       = local.autoscaling_enabled
+}
+
+output "autoscaling_target_resource_id" {
+  description = "Application Auto Scaling resource_id (service/<cluster>/<service>). Null when autoscaling is disabled."
+  value       = local.autoscaling_enabled ? aws_appautoscaling_target.this[0].resource_id : null
+}

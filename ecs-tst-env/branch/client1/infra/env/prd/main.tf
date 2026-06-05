@@ -1,5 +1,5 @@
 module "networking" {
-  source = "../../../../modules/networking"
+  source             = "../../../../modules/networking"
   project            = local.project_name
   environment        = local.environment
   name_prefix        = "${local.client_name}-${local.project_name}-${local.environment}"

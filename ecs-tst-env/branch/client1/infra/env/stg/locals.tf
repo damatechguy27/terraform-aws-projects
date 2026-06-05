@@ -1,9 +1,9 @@
 locals {
   # Project identification
-  client_name      = "client1"
-  project_name      = "infra"
-  environment       = "stg"
-  region            = "us-east-1"
+  client_name  = "client1"
+  project_name = "infra"
+  environment  = "stg"
+  region       = "us-east-1"
 
   # Naming prefix for all resources
   naming_prefix = "${local.client_name}-${local.project_name}-${local.environment}"
