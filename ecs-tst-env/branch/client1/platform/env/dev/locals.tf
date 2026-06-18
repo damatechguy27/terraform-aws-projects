@@ -16,8 +16,12 @@ locals {
   #   container_port - port the container listens on
   #   task_cpu/memory- per-task Fargate sizing (must be a valid Fargate combo)
   #   desired/min/max_count - starting count + autoscaling bounds (min+max => autoscaling on)
-  #   cpu_target     - target avg CPU% for the autoscaling policy
   #   ingress_rules  - per-app security group openings { cidr, from_port, to_port, protocol }
+  #
+  # Autoscaling uses STEP scaling on CPU (module defaults, tunable per app via the
+  # autoscaling_* module inputs in main.tf):
+  #   scale OUT +1 task when CPU > 70% for 3 of the last 5 one-minute datapoints
+  #   scale IN  -1 task when CPU < 70% for 10 one-minute datapoints (10 min)
   services = {
     # Public-facing web app: open to the internet, scales 2..6 on CPU.
     app1 = {
@@ -30,14 +34,29 @@ locals {
       desired_count = 2
       min_count     = 2
       max_count     = 6
-      cpu_target    = 70
+
+      # Scale out when cpu > 70% for 3 of 5 datapoints (defaults, tunable per app here)
+      autoscaling_high_threshold           = 70
+      autoscaling_high_datapoints_to_alarm = 3
+      autoscaling_high_evaluation_periods  = 5
+      autoscaling_high_period              = 300
+      autoscaling_scale_out_adjustment     = 2
+      autoscaling_scale_out_cooldown       = 60
+
+      # Scale back in when cpu < 50% for 3 of 5 datapoints (defaults, tunable per app here)
+      autoscaling_low_threshold           = 50
+      autoscaling_low_datapoints_to_alarm = 3
+      autoscaling_low_evaluation_periods  = 5
+      autoscaling_low_period              = 600
+      autoscaling_scale_in_adjustment     = 1
+      autoscaling_scale_in_cooldown       = 60
 
       ingress_rules = [
         { cidr = "0.0.0.0/0", from_port = 80, to_port = 80, protocol = "tcp", description = "public web" },
       ]
     }
 
-    # Internal app: larger task, locked to the VPC range, scales 1..3 at a tighter CPU target.
+    # Internal app: larger task, scales 1..3.
     app2 = {
       image_prefix   = "super-app2"
       container_port = 80
@@ -48,7 +67,6 @@ locals {
       desired_count = 1
       min_count     = 1
       max_count     = 3
-      cpu_target    = 60
 
       ingress_rules = [
         { cidr = "0.0.0.0/0", from_port = 80, to_port = 80, protocol = "tcp", description = "Public access" },

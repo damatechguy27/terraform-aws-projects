@@ -13,7 +13,7 @@ the infra layer rarely does.
 
 | Module                       | Resource(s)                                              | Purpose                          |
 |------------------------------|---------------------------------------------------------|----------------------------------|
-| `ecs-service` (×N, `for_each`) | task definition, ECS service, security group, IAM roles, log group, **autoscaling target + CPU policy** | One running app per `local.services` entry |
+| `ecs-service` (×N, `for_each`) | task definition, ECS service, security group, IAM roles, log group, **autoscaling target + step policies + CPU alarms** | One running app per `local.services` entry |
 
 It owns **no networking, cluster, or ECR** — it reads those from the infra layer's outputs.
 
@@ -27,11 +27,31 @@ bounds, and security-group rules are all per-app:
 | `task_cpu` / `task_memory`   | per-task Fargate sizing (must be a valid Fargate combo)         |
 | `desired_count`              | starting task count                                            |
 | `min_count` / `max_count`    | autoscaling bounds (set both → autoscaling is enabled)         |
-| `cpu_target`                 | target average CPU% for the target-tracking policy             |
 | `ingress_rules`              | list of `{ cidr, from_port, to_port, protocol }` SG openings   |
 
 If `min_count` + `max_count` are omitted, the service runs a fixed `desired_count` with no
 autoscaling.
+
+**Autoscaling is step scaling on CPU** (a CloudWatch alarm → step policy per direction). The
+module defaults are:
+
+- **scale out** `+1` task when CPU `> 70%` for **3 of the last 5** one-minute datapoints
+- **scale in** `−1` task when CPU `< 70%` for **10** one-minute datapoints (10 min)
+
+Every knob is overridable per app — add the field to that app's `local.services` entry and it
+is forwarded to the module (omitted fields fall back to the default above):
+
+| Field (per direction) | Controls |
+|---|---|
+| `autoscaling_high_threshold` / `autoscaling_low_threshold` | CPU % that trips scale-out / scale-in |
+| `autoscaling_high_period` / `autoscaling_low_period` | seconds per datapoint |
+| `autoscaling_high_evaluation_periods` / `autoscaling_low_evaluation_periods` | how many recent datapoints are examined (M) |
+| `autoscaling_high_datapoints_to_alarm` / `autoscaling_low_datapoints_to_alarm` | how many must breach to fire (N) |
+| `autoscaling_scale_out_adjustment` / `autoscaling_scale_in_adjustment` | tasks added / removed per step |
+| `autoscaling_scale_out_cooldown` / `autoscaling_scale_in_cooldown` | seconds between successive scale events |
+
+> Alarm window = `period × evaluation_periods`; the alarm fires when `datapoints_to_alarm` of
+> those datapoints breach. `period` is **per datapoint**, not the total window.
 
 ```mermaid
 graph LR
@@ -108,7 +128,10 @@ graph TD
     td["aws_ecs_task_definition<br/>Fargate · awsvpc · per-app CPU / MiB"]
     sg["security group<br/>per-app ingress_rules<br/>egress all"]
     asg["appautoscaling_target<br/>min_count..max_count"]
-    pol["appautoscaling_policy<br/>target-track CPU% = cpu_target"]
+    outp["step policy: scale out +1"]
+    inp["step policy: scale in -1"]
+    ahi["alarm: CPU &gt; 70%<br/>3 of 5 × 60s"]
+    alo["alarm: CPU &lt; 70%<br/>10 × 60s"]
     exec["IAM execution role<br/>pull image · logs · secrets"]
     task["IAM task role<br/>(empty by default)"]
     log["CloudWatch log group<br/>/ecs/&lt;name&gt; · 14d retention"]
@@ -118,7 +141,10 @@ graph TD
     svc --> sg
     svc --> spot
     svc --> asg
-    asg --> pol
+    asg --> outp
+    asg --> inp
+    ahi --> outp
+    alo --> inp
     td --> exec
     td --> task
     td --> log

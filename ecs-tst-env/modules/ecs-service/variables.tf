@@ -92,27 +92,107 @@ variable "max_count" {
   default     = null
 }
 
-variable "autoscaling_cpu_target" {
-  description = "Target average CPU utilization (%) for the target-tracking scaling policy. Only used when autoscaling is enabled."
+# --- Step scaling: scale OUT (CPU high) ------------------------------------------------
+# nullable = false on these: the platform stack passes try(each.value.X, null), so apps that
+# omit a field send null and Terraform substitutes the default below.
+variable "autoscaling_high_threshold" {
+  description = "CPU utilization (%) above which the service scales out. Only used when autoscaling is enabled."
   type        = number
   default     = 70
+  nullable    = false
 
   validation {
-    condition     = var.autoscaling_cpu_target > 0 && var.autoscaling_cpu_target <= 100
-    error_message = "autoscaling_cpu_target must be in (0, 100]."
+    condition     = var.autoscaling_high_threshold > 0 && var.autoscaling_high_threshold <= 100
+    error_message = "autoscaling_high_threshold must be in (0, 100]."
   }
 }
 
-variable "autoscaling_scale_out_cooldown" {
-  description = "Seconds to wait after a scale-out before another scale-out. Only used when autoscaling is enabled."
+variable "autoscaling_high_period" {
+  description = "Seconds per datapoint for the scale-out alarm. Must be 10, 30, or a multiple of 60."
   type        = number
   default     = 60
+  nullable    = false
+}
+
+variable "autoscaling_high_evaluation_periods" {
+  description = "Number of most-recent datapoints the scale-out alarm evaluates (the M in 'N of M')."
+  type        = number
+  default     = 5
+  nullable    = false
+}
+
+variable "autoscaling_high_datapoints_to_alarm" {
+  description = "Number of breaching datapoints within the evaluation window that trip scale-out (the N in 'N of M'). Default: 3 of 5 one-minute datapoints = high for ~3 of the last 5 minutes."
+  type        = number
+  default     = 3
+  nullable    = false
+}
+
+variable "autoscaling_scale_out_adjustment" {
+  description = "Number of tasks to ADD on each scale-out step."
+  type        = number
+  default     = 1
+  nullable    = false
+}
+
+variable "autoscaling_scale_out_cooldown" {
+  description = "Seconds to wait after a scale-out before another scale-out."
+  type        = number
+  default     = 60
+  nullable    = false
+}
+
+# --- Step scaling: scale IN (CPU low) --------------------------------------------------
+variable "autoscaling_low_threshold" {
+  description = "CPU utilization (%) below which the service scales in. Only used when autoscaling is enabled."
+  type        = number
+  default     = 70
+  nullable    = false
+
+  validation {
+    condition     = var.autoscaling_low_threshold > 0 && var.autoscaling_low_threshold <= 100
+    error_message = "autoscaling_low_threshold must be in (0, 100]."
+  }
+}
+
+variable "autoscaling_low_period" {
+  description = "Seconds per datapoint for the scale-in alarm. Must be 10, 30, or a multiple of 60."
+  type        = number
+  default     = 60
+  nullable    = false
+}
+
+variable "autoscaling_low_evaluation_periods" {
+  description = "Number of most-recent datapoints the scale-in alarm evaluates. Default: 10 one-minute datapoints = low for 10 minutes."
+  type        = number
+  default     = 10
+  nullable    = false
+}
+
+variable "autoscaling_low_datapoints_to_alarm" {
+  description = "Number of low datapoints within the evaluation window that trip scale-in. Default 10 (all 10 minutes below threshold)."
+  type        = number
+  default     = 10
+  nullable    = false
+}
+
+variable "autoscaling_scale_in_adjustment" {
+  description = "Number of tasks to REMOVE on each scale-in step (positive number; applied as a decrease)."
+  type        = number
+  default     = 1
+  nullable    = false
+
+  validation {
+    condition     = var.autoscaling_scale_in_adjustment > 0
+    error_message = "autoscaling_scale_in_adjustment is the count to remove; use a positive number."
+  }
 }
 
 variable "autoscaling_scale_in_cooldown" {
-  description = "Seconds to wait after a scale-in before another scale-in. Only used when autoscaling is enabled."
+  description = "Seconds to wait after a scale-in before another scale-in."
   type        = number
   default     = 300
+  nullable    = false
 }
 
 variable "ingress_rules" {

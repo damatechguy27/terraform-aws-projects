@@ -120,8 +120,11 @@ The workhorse. For a single service it creates:
   - `lifecycle { ignore_changes = [desired_count] }` — so the autoscaler (below) owns the live
     task count without fighting Terraform.
 - **Application Auto Scaling** (created only when both `min_count` and `max_count` are set):
-  an `aws_appautoscaling_target` bounding the service to `[min_count, max_count]` and a
-  target-tracking `aws_appautoscaling_policy` on average CPU% (`autoscaling_cpu_target`).
+  an `aws_appautoscaling_target` bounding the service to `[min_count, max_count]`, plus
+  **step scaling** — two `aws_appautoscaling_policy` (out/in) each triggered by a
+  `aws_cloudwatch_metric_alarm` on `AWS/ECS` `CPUUtilization`. Defaults: scale out +1 when
+  CPU > 70% for 3 of 5 one-minute datapoints; scale in −1 when CPU < 70% for 10 minutes. All
+  thresholds/periods/adjustments are configurable per service.
 - **IAM roles** (least-privilege):
   - *Execution role* — `AmazonECSTaskExecutionRolePolicy` for image pulls + logs, plus a
     scoped inline policy granting `ssm:GetParameters` / `secretsmanager:GetSecretValue` /
@@ -170,7 +173,7 @@ local.services = {
   app1 = {
     image_prefix = "hello-app1", container_port = 80
     task_cpu = 256, task_memory = 512
-    desired_count = 2, min_count = 2, max_count = 6, cpu_target = 70
+    desired_count = 2, min_count = 2, max_count = 6
     ingress_rules = [{ cidr = "0.0.0.0/0", from_port = 80, to_port = 80, protocol = "tcp" }]
   }
   app2 = { image_prefix = "super-app2", container_port = 80, ... }   # different sizing/scaling/ingress
@@ -178,8 +181,8 @@ local.services = {
 ```
 
 Each app is configured independently — sizing (`task_cpu`/`task_memory`), task count and
-autoscaling bounds (`desired_count`/`min_count`/`max_count`/`cpu_target`), and security-group
-openings (`ingress_rules`) are all per-app.
+autoscaling bounds (`desired_count`/`min_count`/`max_count`), step-scaling thresholds
+(`autoscaling_*`), and security-group openings (`ingress_rules`) are all per-app.
 
 `latest-ecr-tag.sh` calls `aws ecr describe-images`, keeps tags starting with the service's
 `image_prefix`, sorts by `imagePushedAt`, and returns the newest. The service's
@@ -208,7 +211,7 @@ service module and the `external` resolver expand automatically — no copied re
 
 **High availability**
 - Subnets span 2 AZs (validated); services start at `desired_count` and scale within
-  `[min_count, max_count]` via CPU target-tracking autoscaling.
+  `[min_count, max_count]` via CPU step-scaling (CloudWatch alarms → ±1 task).
 - Deployment circuit breaker with auto-rollback.
 - Cluster waits for capacity providers before services attach.
 

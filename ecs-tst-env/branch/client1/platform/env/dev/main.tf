@@ -20,11 +20,27 @@ module "ecs_service" {
   task_cpu    = each.value.task_cpu
   task_memory = each.value.task_memory
 
-  # Per-app task count + CPU target-tracking autoscaling
-  desired_count          = each.value.desired_count
-  min_count              = each.value.min_count
-  max_count              = each.value.max_count
-  autoscaling_cpu_target = each.value.cpu_target
+  # Per-app task count + CPU step autoscaling. Any autoscaling_* field omitted from an app's
+  # local.services entry is passed as null, so the module default applies (try -> null).
+  desired_count = each.value.desired_count
+  min_count     = each.value.min_count
+  max_count     = each.value.max_count
+
+  # Scale out (CPU high)
+  autoscaling_high_threshold           = try(each.value.autoscaling_high_threshold, null)
+  autoscaling_high_period              = try(each.value.autoscaling_high_period, null)
+  autoscaling_high_evaluation_periods  = try(each.value.autoscaling_high_evaluation_periods, null)
+  autoscaling_high_datapoints_to_alarm = try(each.value.autoscaling_high_datapoints_to_alarm, null)
+  autoscaling_scale_out_adjustment     = try(each.value.autoscaling_scale_out_adjustment, null)
+  autoscaling_scale_out_cooldown       = try(each.value.autoscaling_scale_out_cooldown, null)
+
+  # Scale in (CPU low)
+  autoscaling_low_threshold           = try(each.value.autoscaling_low_threshold, null)
+  autoscaling_low_period              = try(each.value.autoscaling_low_period, null)
+  autoscaling_low_evaluation_periods  = try(each.value.autoscaling_low_evaluation_periods, null)
+  autoscaling_low_datapoints_to_alarm = try(each.value.autoscaling_low_datapoints_to_alarm, null)
+  autoscaling_scale_in_adjustment     = try(each.value.autoscaling_scale_in_adjustment, null)
+  autoscaling_scale_in_cooldown       = try(each.value.autoscaling_scale_in_cooldown, null)
 
   use_fargate_spot = true # dev — flip off for prod
 
